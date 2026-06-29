@@ -14,7 +14,7 @@ La refactorización consistió en descomponer `UserManager` en cuatro clases con
 * `NotificationService`: envía la notificación de bienvenida.
 * `UserManager`: coordina el flujo delegando cada tarea a la clase correspondiente.
 
-### Problemas que resolvió
+### Problemas resueltos
 
 Antes de la refactorización, cualquier cambio en la validación, la persistencia o las notificaciones implicaba modificar la misma clase, aumentando el riesgo de introducir errores en funcionalidades no relacionadas. Tras la separación, cada componente tiene una única razón para cambiar, lo que mejora la mantenibilidad y facilita las pruebas unitarias al poder evaluar cada clase de forma independiente.
 
@@ -52,7 +52,7 @@ basta con crear una clase `FaxNotification` que implemente la interfaz, sin toca
 clase existente. Este es precisamente el criterio para evaluar si el OCP se está aplicando
 correctamente: que la extensión no requiera modificación.
 
-### Problemas que resolvió
+### Problemas resueltos
 
 El problema central era la fragilidad del método `sendNotification` ante el crecimiento del
 sistema. Al concentrar la lógica de todos los canales en un único bloque condicional, cada
@@ -88,14 +88,29 @@ La refactorización convirtió `Animal` en una clase abstracta que únicamente d
 
 Además, en `Main` se utilizó el tipo `Dog` en lugar de `Animal`, ya que el programa necesita acceder al método `walk()`. Esta decisión evita realizar conversiones innecesarias (`cast`) desde `Animal` a `Walkable`, las cuales podrían volver a introducir errores similares a los del diseño original. En otras palabras, el principio de sustitución de Liskov no impide utilizar tipos concretos cuando es necesario; lo importante es que las subclases respeten el comportamiento esperado de su clase base.
 
-### Problemas que resolvió
-
-La refactorización convirtió `Animal` en una clase abstracta que únicamente define el método `makeSound()`, ya que este representa un comportamiento válido para cualquier animal. La capacidad de caminar se trasladó a la interfaz `Walkable`, la cual es implementada por `Dog`, pero no por `Fish`. Gracias a este cambio, cualquier objeto de tipo `Animal` puede utilizar `makeSound()` sin problemas, mientras que solo los animales que realmente pueden caminar implementan `Walkable`.
-
-Además, en `Main` se utilizó el tipo `Dog` en lugar de `Animal`, ya que el programa necesita acceder al método `walk()`. Esta decisión evita realizar conversiones innecesarias (`cast`) desde `Animal` a `Walkable`, las cuales podrían volver a introducir errores similares a los del diseño original. En otras palabras, el principio de sustitución de Liskov no impide utilizar tipos concretos cuando es necesario; lo importante es que las subclases respeten el comportamiento esperado de su clase base.
-
-### Problemas que resolvió
+### Problemas resueltos
 
 Antes de la refactorización, el programa podía fallar en tiempo de ejecución si se trataba un `Fish` como un `Animal` y se llamaba al método `walk()`. Este tipo de errores es difícil de detectar porque el compilador no los identifica y solo aparecen cuando el programa se ejecuta. Con la nueva estructura, el compilador garantiza que `walk()` solo pueda invocarse en objetos que implementan `Walkable`, evitando este problema desde el diseño.
 
 Adicionalmente, el diseño resultante es más honesto: la jerarquía de clases refleja con precisión las capacidades reales de cada animal, lo que hace el sistema más fácil de entender, extender y mantener sin sorpresas.
+
+
+## Principio 4: Interface Segregation Principle (ISP)
+
+### Aplicación del principio
+
+El código base definía una interfaz `Device` con tres métodos: `turnOn()`, `turnOff()` y
+`charge()`. Esta interfaz asumía que todo dispositivo es recargable, lo cual no es cierto
+para todos los casos del dominio. Como consecuencia, `DisposableCamera` se veía forzada a
+implementar `charge()` lanzando una excepción `UnsupportedOperationException`, ya que no
+tiene capacidad de recarga. Esto es una violación directa del ISP: la clase depende de un
+método que no puede cumplir, y cualquier código que invoque `charge()` sobre un `Device`
+genérico puede fallar en tiempo de ejecución sin advertencia del compilador.
+
+Al plantear la refactorización, se analizó cómo reorganizar la interfaz sin dividirla más de lo necesario. Una alternativa era separar cada método en una interfaz distinta, pero esto habría complicado el diseño sin aportar beneficios reales. En este caso, encender y apagar forman parte del comportamiento básico de cualquier dispositivo, por lo que tiene sentido mantener ambos métodos en la interfaz `Device`. En cambio, la capacidad de recarga no está presente en todos los dispositivos, por lo que se trasladó a una interfaz independiente, `Chargeable`. Así, `Phone` implementa ambas interfaces, mientras que `DisposableCamera` solo implementa `Device`, evitando que una clase tenga que definir métodos que no le corresponden. Además, este diseño facilita la incorporación de nuevos dispositivos con distintas capacidades sin modificar las interfaces existentes.
+
+Con esta estructura, `Phone` implementa tanto `Device` como `Chargeable` porque cumple ambos contratos, mientras que `DisposableCamera` solo implementa `Device`. Ninguna clase está obligada a declarar comportamiento que no puede sostener. Además, si en el futuro se agrega un dispositivo como una batería externa que se carga pero no enciende ni apaga de forma convencional, el diseño lo acomoda sin modificar las interfaces existentes, solo implementando `Chargeable`.
+
+### Problemas resueltos
+
+El principal problema del diseño original era que `DisposableCamera` debía implementar `charge()` aunque no pudiera recargarse, lo que provocaba una excepción si ese método era llamado. Con la separación de interfaces, este problema desaparece porque solo los dispositivos recargables implementan `Chargeable`. Además, el código queda menos acoplado: si en el futuro se agregan o modifican métodos relacionados con la recarga, únicamente deberán actualizarse las clases que implementan esa interfaz. Esto hace que el sistema sea más fácil de mantener y evita implementar métodos vacíos o con excepciones que pueden generar errores durante la ejecución.
