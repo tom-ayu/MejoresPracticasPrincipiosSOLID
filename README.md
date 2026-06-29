@@ -62,3 +62,40 @@ encapsulado en su propia clase, que puede probarse de forma aislada y, una vez v
 necesita volver a modificarse. Cualquier error introducido en el futuro estará contenido en
 la clase nueva, no en las ya existentes, lo que reduce significativamente el riesgo de
 regresión y hace al sistema más predecible y mantenible a largo plazo.
+
+
+## Principio 3: Liskov Substitution Principle (LSP)
+
+### Aplicación del principio
+
+El código base definía una clase `Animal` con dos métodos: `makeSound()` y `walk()`. La
+clase `Dog` heredaba ambos sin problema, pero `Fish` se veía obligada a sobreescribir
+`walk()` lanzando una excepción `UnsupportedOperationException`, ya que los peces no
+caminan. Esta es una violación directa del LSP: si cualquier parte del programa recibe un
+`Animal` y llama a `walk()`, el comportamiento depende de qué subclase concreta sea, y en
+el caso de `Fish` el programa falla en tiempo de ejecución. La clase hija no es sustituible
+por la clase base sin alterar el comportamiento del programa.
+
+Antes de refactorizar se evaluaron dos enfoques. El primero consistía en crear subclases
+intermedias como `WalkingAnimal` y `NonWalkingAnimal` dentro de la jerarquía de `Animal`.
+Esta opción introduce rigidez: si en el futuro aparece un animal que nada y también camina,
+como una tortuga, la jerarquía no lo acomoda sin reestructurarse. El segundo enfoque,
+extraer la capacidad de caminar a una interfaz `Walkable`, es más adecuado porque es
+composable: cualquier clase puede implementarla independientemente de su posición en la
+jerarquía, sin comprometer el contrato de `Animal`.
+
+La refactorización convirtió `Animal` en una clase abstracta que únicamente define el método `makeSound()`, ya que este representa un comportamiento válido para cualquier animal. La capacidad de caminar se trasladó a la interfaz `Walkable`, la cual es implementada por `Dog`, pero no por `Fish`. Gracias a este cambio, cualquier objeto de tipo `Animal` puede utilizar `makeSound()` sin problemas, mientras que solo los animales que realmente pueden caminar implementan `Walkable`.
+
+Además, en `Main` se utilizó el tipo `Dog` en lugar de `Animal`, ya que el programa necesita acceder al método `walk()`. Esta decisión evita realizar conversiones innecesarias (`cast`) desde `Animal` a `Walkable`, las cuales podrían volver a introducir errores similares a los del diseño original. En otras palabras, el principio de sustitución de Liskov no impide utilizar tipos concretos cuando es necesario; lo importante es que las subclases respeten el comportamiento esperado de su clase base.
+
+### Problemas que resolvió
+
+La refactorización convirtió `Animal` en una clase abstracta que únicamente define el método `makeSound()`, ya que este representa un comportamiento válido para cualquier animal. La capacidad de caminar se trasladó a la interfaz `Walkable`, la cual es implementada por `Dog`, pero no por `Fish`. Gracias a este cambio, cualquier objeto de tipo `Animal` puede utilizar `makeSound()` sin problemas, mientras que solo los animales que realmente pueden caminar implementan `Walkable`.
+
+Además, en `Main` se utilizó el tipo `Dog` en lugar de `Animal`, ya que el programa necesita acceder al método `walk()`. Esta decisión evita realizar conversiones innecesarias (`cast`) desde `Animal` a `Walkable`, las cuales podrían volver a introducir errores similares a los del diseño original. En otras palabras, el principio de sustitución de Liskov no impide utilizar tipos concretos cuando es necesario; lo importante es que las subclases respeten el comportamiento esperado de su clase base.
+
+### Problemas que resolvió
+
+Antes de la refactorización, el programa podía fallar en tiempo de ejecución si se trataba un `Fish` como un `Animal` y se llamaba al método `walk()`. Este tipo de errores es difícil de detectar porque el compilador no los identifica y solo aparecen cuando el programa se ejecuta. Con la nueva estructura, el compilador garantiza que `walk()` solo pueda invocarse en objetos que implementan `Walkable`, evitando este problema desde el diseño.
+
+Adicionalmente, el diseño resultante es más honesto: la jerarquía de clases refleja con precisión las capacidades reales de cada animal, lo que hace el sistema más fácil de entender, extender y mantener sin sorpresas.
