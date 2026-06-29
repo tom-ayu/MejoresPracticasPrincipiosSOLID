@@ -22,6 +22,7 @@ Esta refactorización permitió comprobar que el SRP no consiste en reducir una 
 
 Como resultado, el sistema quedó mejor preparado para futuros cambios. Por ejemplo, reemplazar el servicio de correo o cambiar el motor de base de datos solo requiere modificar la clase correspondiente, reduciendo el acoplamiento y el riesgo de regresiones.
 
+<img width="1920" height="1020" alt="Captura de pantalla 2026-06-28 201117" src="https://github.com/user-attachments/assets/8f8addb1-7f32-4bae-8f86-e76a52e1d802" />
 
 ## Principio 2: Open/Closed Principle (OCP)
 
@@ -38,6 +39,8 @@ El caso del tipo `"Fax"` presente en el código original, que antes producía el
 ### Problemas resueltos
 
 El problema central era la fragilidad del método `sendNotification` ante el crecimiento del sistema. Al concentrar la lógica de todos los canales en un único bloque condicional, cada nueva funcionalidad aumentaba la complejidad del método y elevaba el riesgo de introducir errores en canales ya funcionando. Con la refactorización, cada tipo de notificación queda encapsulado en su propia clase, que puede probarse de forma aislada y, una vez validada, no necesita volver a modificarse. Cualquier error introducido en el futuro estará contenido en la clase nueva, no en las ya existentes, lo que reduce significativamente el riesgo de regresión y hace al sistema más predecible y mantenible a largo plazo.
+
+<img width="1920" height="1020" alt="Captura de pantalla 2026-06-28 202647" src="https://github.com/user-attachments/assets/913061a4-0586-4d98-a134-fd3cd724401f" />
 
 
 ## Principio 3: Liskov Substitution Principle (LSP)
@@ -58,6 +61,8 @@ Antes de la refactorización, el programa podía fallar en tiempo de ejecución 
 
 Adicionalmente, el diseño resultante es más honesto: la jerarquía de clases refleja con precisión las capacidades reales de cada animal, lo que hace el sistema más fácil de entender, extender y mantener sin sorpresas.
 
+<img width="1920" height="1020" alt="Captura de pantalla 2026-06-28 205101" src="https://github.com/user-attachments/assets/ea31eb24-bb39-4828-93f7-1734d7934517" />
+
 
 ## Principio 4: Interface Segregation Principle (ISP)
 
@@ -73,6 +78,7 @@ Con esta estructura, `Phone` implementa tanto `Device` como `Chargeable` porque 
 
 El principal problema del diseño original era que `DisposableCamera` debía implementar `charge()` aunque no pudiera recargarse, lo que provocaba una excepción si ese método era llamado. Con la separación de interfaces, este problema desaparece porque solo los dispositivos recargables implementan `Chargeable`. Además, el código queda menos acoplado: si en el futuro se agregan o modifican métodos relacionados con la recarga, únicamente deberán actualizarse las clases que implementan esa interfaz. Esto hace que el sistema sea más fácil de mantener y evita implementar métodos vacíos o con excepciones que pueden generar errores durante la ejecución.
 
+<img width="1920" height="1020" alt="Captura de pantalla 2026-06-28 211622" src="https://github.com/user-attachments/assets/0156a408-b6aa-4d35-b5b2-6bd5b92dbf66" />
 
 ## Principio 5: Dependency Inversion Principle (DIP)
 
@@ -89,3 +95,5 @@ Con esta estructura, `PaymentProcessor` depende únicamente de la abstracción `
 ### Problemas resueltos
 
 El problema central era el acoplamiento rígido entre `PaymentProcessor` y `CreditCardPayment`, que hacía imposible extender el sistema sin modificar código ya funcionando. En términos prácticos, esto significaba que cada nuevo método de pago representaba un riesgo de regresión sobre la funcionalidad de tarjeta de crédito ya probada. Con la refactorización, cada implementación de `PaymentMethod` es completamente independiente y puede probarse de forma aislada. `PaymentProcessor` puede validarse una sola vez contra la abstracción y funciona correctamente con cualquier implementación presente o futura, lo que elimina la necesidad de retesting ante cada extensión del sistema y reduce significativamente el costo de mantenimiento a medida que el catálogo de métodos de pago crece.
+
+<img width="1920" height="1020" alt="Captura de pantalla 2026-06-28 214843" src="https://github.com/user-attachments/assets/88009ac0-baf3-4da2-9be6-bbf017725d12" />
