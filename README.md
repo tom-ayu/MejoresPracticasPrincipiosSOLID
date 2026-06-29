@@ -27,62 +27,26 @@ Como resultado, el sistema quedó mejor preparado para futuros cambios. Por ejem
 
 ### Aplicación del principio
 
-El código base presentaba una clase `NotificationService` con un método `sendNotification`
-que utilizaba una cadena de condicionales para determinar qué tipo de notificación enviar
-según un parámetro de tipo `String`. Esta estructura funciona mientras el sistema maneja
-pocos casos, pero se vuelve problemática en cuanto los requisitos cambian: agregar un nuevo
-canal de notificación implica abrir la clase, modificar el método existente e introducir
-una nueva rama al condicional. Cada una de esas modificaciones es una oportunidad para
-romper el comportamiento ya probado de los tipos anteriores.
+El código base presentaba una clase `NotificationService` con un método `sendNotification` que utilizaba una cadena de condicionales para determinar qué tipo de notificación enviar según un parámetro de tipo `String`. Esta estructura funciona mientras el sistema maneja pocos casos, pero se vuelve problemática en cuanto los requisitos cambian: agregar un nuevo canal de notificación implica abrir la clase, modificar el método existente e introducir una nueva rama al condicional. Cada una de esas modificaciones es una oportunidad para romper el comportamiento ya probado de los tipos anteriores.
 
 Antes de realizar la refactorización se consideraron dos alternativas. La primera consistía en utilizar una clase abstracta como base para los distintos tipos de notificación. Aunque esta opción permitía compartir comportamiento, en este sistema cada canal funciona de forma independiente y no existe lógica común que justifique una relación de herencia. La segunda alternativa fue crear una interfaz `Notification` con un único método `send`, la cual resultó más adecuada porque define un contrato común sin obligar a las clases a heredar de una misma base. Además, permite que en el futuro una clase pueda implementar varias interfaces si el diseño del sistema lo requiere.
 
-La refactorización reemplazó el condicional por polimorfismo. Se definió la interfaz
-`Notification` y se crearon tres implementaciones independientes: `EmailNotification`,
-`SMSNotification` y `PushNotification`. La clase `NotificationService` dejó de conocer los
-detalles de cada canal y pasó a recibir cualquier objeto que cumpla el contrato de la
-interfaz. Esto significa que está cerrada para modificación, ya que no necesita cambiar
-cuando se agrega un nuevo tipo, pero abierta para extensión, ya que cualquier nueva clase
-que implemente `Notification` puede integrarse al sistema sin alterar el código existente.
+La refactorización reemplazó el condicional por polimorfismo. Se definió la interfaz `Notification` y se crearon tres implementaciones independientes: `EmailNotification`, `SMSNotification` y `PushNotification`. La clase `NotificationService` dejó de conocer los detalles de cada canal y pasó a recibir cualquier objeto que cumpla el contrato de la interfaz. Esto significa que está cerrada para modificación, ya que no necesita cambiar cuando se agrega un nuevo tipo, pero abierta para extensión, ya que cualquier nueva clase que implemente `Notification` puede integrarse al sistema sin alterar el código existente.
 
-El caso del tipo `"Fax"` presente en el código original, que antes producía el mensaje
-"Invalid notification type!", ilustra bien el cambio de paradigma. En el diseño original
-era necesario modificar `NotificationService` para soportar Fax. En el diseño refactorizado
-basta con crear una clase `FaxNotification` que implemente la interfaz, sin tocar ninguna
-clase existente. Este es precisamente el criterio para evaluar si el OCP se está aplicando
-correctamente: que la extensión no requiera modificación.
+El caso del tipo `"Fax"` presente en el código original, que antes producía el mensaje "Invalid notification type!", ilustra bien el cambio de paradigma. En el diseño original era necesario modificar `NotificationService` para soportar Fax. En el diseño refactorizado basta con crear una clase `FaxNotification` que implemente la interfaz, sin tocar ninguna clase existente. Este es precisamente el criterio para evaluar si el OCP se está aplicando correctamente: que la extensión no requiera modificación.
 
 ### Problemas resueltos
 
-El problema central era la fragilidad del método `sendNotification` ante el crecimiento del
-sistema. Al concentrar la lógica de todos los canales en un único bloque condicional, cada
-nueva funcionalidad aumentaba la complejidad del método y elevaba el riesgo de introducir
-errores en canales ya funcionando. Con la refactorización, cada tipo de notificación queda
-encapsulado en su propia clase, que puede probarse de forma aislada y, una vez validada, no
-necesita volver a modificarse. Cualquier error introducido en el futuro estará contenido en
-la clase nueva, no en las ya existentes, lo que reduce significativamente el riesgo de
-regresión y hace al sistema más predecible y mantenible a largo plazo.
+El problema central era la fragilidad del método `sendNotification` ante el crecimiento del sistema. Al concentrar la lógica de todos los canales en un único bloque condicional, cada nueva funcionalidad aumentaba la complejidad del método y elevaba el riesgo de introducir errores en canales ya funcionando. Con la refactorización, cada tipo de notificación queda encapsulado en su propia clase, que puede probarse de forma aislada y, una vez validada, no necesita volver a modificarse. Cualquier error introducido en el futuro estará contenido en la clase nueva, no en las ya existentes, lo que reduce significativamente el riesgo de regresión y hace al sistema más predecible y mantenible a largo plazo.
 
 
 ## Principio 3: Liskov Substitution Principle (LSP)
 
 ### Aplicación del principio
 
-El código base definía una clase `Animal` con dos métodos: `makeSound()` y `walk()`. La
-clase `Dog` heredaba ambos sin problema, pero `Fish` se veía obligada a sobreescribir
-`walk()` lanzando una excepción `UnsupportedOperationException`, ya que los peces no
-caminan. Esta es una violación directa del LSP: si cualquier parte del programa recibe un
-`Animal` y llama a `walk()`, el comportamiento depende de qué subclase concreta sea, y en
-el caso de `Fish` el programa falla en tiempo de ejecución. La clase hija no es sustituible
-por la clase base sin alterar el comportamiento del programa.
+El código base definía una clase `Animal` con dos métodos: `makeSound()` y `walk()`. La clase `Dog` heredaba ambos sin problema, pero `Fish` se veía obligada a sobreescribir `walk()` lanzando una excepción `UnsupportedOperationException`, ya que los peces no caminan. Esta es una violación directa del LSP: si cualquier parte del programa recibe un `Animal` y llama a `walk()`, el comportamiento depende de qué subclase concreta sea, y en el caso de `Fish` el programa falla en tiempo de ejecución. La clase hija no es sustituible por la clase base sin alterar el comportamiento del programa.
 
-Antes de refactorizar se evaluaron dos enfoques. El primero consistía en crear subclases
-intermedias como `WalkingAnimal` y `NonWalkingAnimal` dentro de la jerarquía de `Animal`.
-Esta opción introduce rigidez: si en el futuro aparece un animal que nada y también camina,
-como una tortuga, la jerarquía no lo acomoda sin reestructurarse. El segundo enfoque,
-extraer la capacidad de caminar a una interfaz `Walkable`, es más adecuado porque es
-composable: cualquier clase puede implementarla independientemente de su posición en la
-jerarquía, sin comprometer el contrato de `Animal`.
+Antes de refactorizar se evaluaron dos enfoques. El primero consistía en crear subclases intermedias como `WalkingAnimal` y `NonWalkingAnimal` dentro de la jerarquía de `Animal`. Esta opción introduce rigidez: si en el futuro aparece un animal que nada y también camina, como una tortuga, la jerarquía no lo acomoda sin reestructurarse. El segundo enfoque, extraer la capacidad de caminar a una interfaz `Walkable`, es más adecuado porque es composable: cualquier clase puede implementarla independientemente de su posición en la jerarquía, sin comprometer el contrato de `Animal`.
 
 La refactorización convirtió `Animal` en una clase abstracta que únicamente define el método `makeSound()`, ya que este representa un comportamiento válido para cualquier animal. La capacidad de caminar se trasladó a la interfaz `Walkable`, la cual es implementada por `Dog`, pero no por `Fish`. Gracias a este cambio, cualquier objeto de tipo `Animal` puede utilizar `makeSound()` sin problemas, mientras que solo los animales que realmente pueden caminar implementan `Walkable`.
 
@@ -99,13 +63,7 @@ Adicionalmente, el diseño resultante es más honesto: la jerarquía de clases r
 
 ### Aplicación del principio
 
-El código base definía una interfaz `Device` con tres métodos: `turnOn()`, `turnOff()` y
-`charge()`. Esta interfaz asumía que todo dispositivo es recargable, lo cual no es cierto
-para todos los casos del dominio. Como consecuencia, `DisposableCamera` se veía forzada a
-implementar `charge()` lanzando una excepción `UnsupportedOperationException`, ya que no
-tiene capacidad de recarga. Esto es una violación directa del ISP: la clase depende de un
-método que no puede cumplir, y cualquier código que invoque `charge()` sobre un `Device`
-genérico puede fallar en tiempo de ejecución sin advertencia del compilador.
+El código base definía una interfaz `Device` con tres métodos: `turnOn()`, `turnOff()` y `charge()`. Esta interfaz asumía que todo dispositivo es recargable, lo cual no es cierto para todos los casos del dominio. Como consecuencia, `DisposableCamera` se veía forzada a implementar `charge()` lanzando una excepción `UnsupportedOperationException`, ya que no tiene capacidad de recarga. Esto es una violación directa del ISP: la clase depende de un método que no puede cumplir, y cualquier código que invoque `charge()` sobre un `Device` genérico puede fallar en tiempo de ejecución sin advertencia del compilador.
 
 Al plantear la refactorización, se analizó cómo reorganizar la interfaz sin dividirla más de lo necesario. Una alternativa era separar cada método en una interfaz distinta, pero esto habría complicado el diseño sin aportar beneficios reales. En este caso, encender y apagar forman parte del comportamiento básico de cualquier dispositivo, por lo que tiene sentido mantener ambos métodos en la interfaz `Device`. En cambio, la capacidad de recarga no está presente en todos los dispositivos, por lo que se trasladó a una interfaz independiente, `Chargeable`. Así, `Phone` implementa ambas interfaces, mientras que `DisposableCamera` solo implementa `Device`, evitando que una clase tenga que definir métodos que no le corresponden. Además, este diseño facilita la incorporación de nuevos dispositivos con distintas capacidades sin modificar las interfaces existentes.
 
@@ -114,3 +72,20 @@ Con esta estructura, `Phone` implementa tanto `Device` como `Chargeable` porque 
 ### Problemas resueltos
 
 El principal problema del diseño original era que `DisposableCamera` debía implementar `charge()` aunque no pudiera recargarse, lo que provocaba una excepción si ese método era llamado. Con la separación de interfaces, este problema desaparece porque solo los dispositivos recargables implementan `Chargeable`. Además, el código queda menos acoplado: si en el futuro se agregan o modifican métodos relacionados con la recarga, únicamente deberán actualizarse las clases que implementan esa interfaz. Esto hace que el sistema sea más fácil de mantener y evita implementar métodos vacíos o con excepciones que pueden generar errores durante la ejecución.
+
+
+## Principio 5: Dependency Inversion Principle (DIP)
+
+### Aplicación del principio
+
+El código base presentaba una clase `PaymentProcessor` que instanciaba directamente un objeto `CreditCardPayment` dentro de su constructor. Esta dependencia concreta significaba que `PaymentProcessor`, un módulo de alto nivel encargado de orquestar el proceso de pago, conocía y dependía de los detalles internos de un módulo de bajo nivel específico. Cualquier intento de usar un método de pago distinto requería abrir y modificar `PaymentProcessor`, violando tanto el DIP como el OCP de forma simultánea.
+
+Durante la refactorización se evaluó si era más conveniente utilizar una interfaz o una clase abstracta para representar los métodos de pago. Como cada forma de pago funciona de manera independiente y no comparte lógica con las demás, una clase abstracta no ofrecía ventajas reales. Por ello, se optó por crear la interfaz `PaymentMethod` con el método `processPayment`, ya que define un contrato común sin obligar a las implementaciones a formar parte de una jerarquía de herencia.
+
+También se analizó cómo inyectar la dependencia en `PaymentProcessor`. La inyección mediante un setter permitía cambiar el método de pago durante la ejecución, pero esa flexibilidad no era necesaria y hacía que el objeto fuera mutable. Otra posibilidad era utilizar un *factory*, aunque para este proyecto habría añadido complejidad sin aportar un beneficio claro. Finalmente, se eligió la inyección por constructor porque deja la dependencia definida desde la creación del objeto, evita modificaciones posteriores y facilita las pruebas unitarias al permitir pasar cualquier implementación de `PaymentMethod` sin cambiar el código de `PaymentProcessor`.
+
+Con esta estructura, `PaymentProcessor` depende únicamente de la abstracción `PaymentMethod` y no tiene conocimiento de si el pago se realiza con tarjeta, PayPal o criptomoneda. Agregar un nuevo método de pago como transferencia bancaria implica únicamente crear una nueva clase que implemente `PaymentMethod` e inyectarla al construir el procesador, sin tocar ninguna clase existente.
+
+### Problemas resueltos
+
+El problema central era el acoplamiento rígido entre `PaymentProcessor` y `CreditCardPayment`, que hacía imposible extender el sistema sin modificar código ya funcionando. En términos prácticos, esto significaba que cada nuevo método de pago representaba un riesgo de regresión sobre la funcionalidad de tarjeta de crédito ya probada. Con la refactorización, cada implementación de `PaymentMethod` es completamente independiente y puede probarse de forma aislada. `PaymentProcessor` puede validarse una sola vez contra la abstracción y funciona correctamente con cualquier implementación presente o futura, lo que elimina la necesidad de retesting ante cada extensión del sistema y reduce significativamente el costo de mantenimiento a medida que el catálogo de métodos de pago crece.
